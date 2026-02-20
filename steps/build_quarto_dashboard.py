@@ -96,8 +96,8 @@ format:
 <div style="display:flex; gap: 16px; align-items:center; flex-wrap: wrap; margin-bottom: 12px;">
   <label for="metricSelect"><strong>Metric</strong></label>
   <select id="metricSelect">
-    <option value="poc_category">POC category</option>
-    <option value="below_200_percent_poverty_category">Below 200% poverty category</option>
+    <option value="poc_category">People of color (% of population)</option>
+    <option value="below_200_percent_poverty_category">Income below 200% poverty</option>
   </select>
 
   <label for="yearSlider" style="margin-left:12px;"><strong>Year</strong></label>
@@ -170,7 +170,7 @@ function getColor(v) {{
 }}
 
 function metricLabel(metric) {{
-  return (metric === 'poc_category') ? 'POC category' : 'Below 200% poverty category';
+  return (metric === 'poc_category') ? 'People of color (% of population)' : 'Income below 200% poverty';
 }}
 
 function legendItems() {{
