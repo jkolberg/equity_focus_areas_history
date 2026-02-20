@@ -1,0 +1,31 @@
+steps:
+  - name: pypyr.steps.envget
+    in:
+      envGet:
+        env: CENSUS_KEY
+        key: api_key
+  - name: pypyr.steps.contextsetf
+    in:
+      contextSetf:
+        county_ids: [53033, 53035, 53053, 53061]
+        state_id: 53
+        data_dir: data
+        xwalks_dir: xwalks
+        output_dir: outputs
+        intermediate_dir: intermediate
+          docs_dir: docs
+        dashboard_dir: dashboard
+  - name: steps.init_context
+  - name: steps.define_columns
+  - name: steps.build_1990
+  - name: steps.build_2000
+  - name: steps.build_2010
+  - name: steps.build_2020
+  - name: steps.concat_all
+  - name: steps.calc_poc_metric
+  - name: steps.calc_poverty_metric
+  - name: steps.export_csvs
+  - name: steps.load_tracts_geometry
+  - name: steps.export_maps
+  - name: steps.build_quarto_dashboard
+
