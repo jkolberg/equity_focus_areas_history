@@ -88,6 +88,31 @@ ul.task-list li input[type="checkbox"] {
 <div id="map" style="height: 700px; width: 100%;" class="html-fill-item html-fill-container">
 
 </div>
+<style>
+  .efa-legend {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  .efa-legend .efa-legend-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .efa-legend .efa-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 0;
+    white-space: nowrap;
+  }
+  .efa-legend .efa-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    flex: 0 0 auto;
+  }
+</style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -98,6 +123,7 @@ let map;
 let geojsonAll;
 let layer;
 let hasFitBounds = false;
+let legendDiv;
 
 function setStatus(html) {
   const el = document.getElementById('status');
@@ -112,6 +138,46 @@ function getColor(v) {
   if (s === 'Above Regional Average') return '#fd8d3c';
   if (s === 'Above 1 Std Dev') return '#800026';
   return '#cccccc';
+}
+
+function metricLabel(metric) {
+  return (metric === 'poc_category') ? 'POC category' : 'Below 200% poverty category';
+}
+
+function legendItems() {
+  return [
+    { label: 'Below Regional Average', color: '#ffffcc' },
+    { label: 'Above Regional Average', color: '#fd8d3c' },
+    { label: 'Above 1 Std Dev', color: '#800026' },
+    { label: 'No data', color: '#cccccc' },
+  ];
+}
+
+function renderLegend(metric) {
+  const title = metricLabel(metric);
+  const rows = legendItems().map(item =>
+    `<div class="efa-legend-item"><span class="efa-legend-swatch" style="background:${item.color}"></span><span>${item.label}</span></div>`
+  ).join('');
+  return `<div class="efa-legend-title">${title}</div>${rows}`;
+}
+
+function updateLegend(metric) {
+  if (!legendDiv) return;
+  legendDiv.innerHTML = renderLegend(metric);
+}
+
+function initLegend() {
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = function() {
+    const div = L.DomUtil.create('div', 'efa-legend');
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    legendDiv = div;
+    const metric = document.getElementById('metricSelect').value;
+    div.innerHTML = renderLegend(metric);
+    return div;
+  };
+  legend.addTo(map);
 }
 
 function styleFeature(metric, year) {
@@ -150,6 +216,8 @@ function updateLayer() {
   const year = YEARS[yearIndex];
   document.getElementById('yearLabel').textContent = String(year);
 
+  updateLegend(metric);
+
   if (layer) layer.remove();
 
   layer = L.geoJSON(geojsonAll, {
@@ -159,7 +227,7 @@ function updateLayer() {
       const p = feature.properties || {};
       const tract = p.tr2020ge ?? 'unknown';
       const v = p[metric];
-      const labelMetric = (metric === 'poc_category') ? 'POC category' : 'Below 200% poverty category';
+      const labelMetric = metricLabel(metric);
       layer.bindTooltip(
         `Tract: ${tract}<br/>Year: ${year}<br/>${labelMetric}: ${formatCategory(v)}`,
         {sticky: true}
@@ -182,6 +250,8 @@ async function init() {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
+
+  initLegend();
 
   setStatus('Loading data…');
   try {
