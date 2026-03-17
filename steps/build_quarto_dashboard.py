@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -20,6 +21,10 @@ def run_step(context: dict) -> None:
         else Path(str(docs_dir_cfg))
     )
     docs_dir.mkdir(parents=True, exist_ok=True)
+
+    dashboard_subdir = context.get("dashboard_dir", "dashboard")
+    dashboard_dir = docs_dir / dashboard_subdir
+    dashboard_dir.mkdir(parents=True, exist_ok=True)
 
     # Prevent GitHub Pages/Jekyll from attempting to process Quarto output.
     (docs_dir / ".nojekyll").write_text("", encoding="utf-8")
@@ -79,27 +84,39 @@ def run_step(context: dict) -> None:
     gdf = tracts[["tr2020ge", "geometry"]].merge(metrics, on="tr2020ge", how="left")
     gdf["year"] = gdf["year"].astype("Int64")
 
-    geojson_path = docs_dir / "efa_dashboard_data.geojson"
+    geojson_path = dashboard_dir / "efa_dashboard_data.geojson"
     gdf.to_file(geojson_path, driver="GeoJSON")
 
-    qmd_path = docs_dir / "index.qmd"
+    qmd_path = dashboard_dir / "efa_dashboard.qmd"
     qmd_path.write_text(
         _render_qmd(title="Equity Metrics by Tract", geojson_file=geojson_path.name),
         encoding="utf-8",
     )
 
-    # Render the Quarto dashboard to docs/index.html for GitHub Pages.
+    # Render the Quarto dashboard to docs/dashboard/efa_dashboard.html.
     subprocess.run(
         [
             "quarto",
             "render",
         qmd_path.name,
         "--output",
-        "index.html",
+        "efa_dashboard.html",
         ],
         check=True,
-      cwd=docs_dir,
+      cwd=dashboard_dir,
     )
+
+    index_path = docs_dir / "index.html"
+    index_path.write_text(_render_index_redirect(f"./{dashboard_subdir}/efa_dashboard.html"), encoding="utf-8")
+
+    # Remove obsolete root-level Quarto artifacts from the previous layout.
+    for stale_file in (docs_dir / "index.qmd", docs_dir / "efa_dashboard_data.geojson"):
+      if stale_file.exists():
+        stale_file.unlink()
+
+    stale_index_files = docs_dir / "index_files"
+    if stale_index_files.exists():
+      shutil.rmtree(stale_index_files)
 
 
 def _render_qmd(*, title: str, geojson_file: str) -> str:
@@ -343,3 +360,27 @@ init();
 :::
 """
     return template.replace("__TITLE__", title).replace("__GEOJSON_FILE__", geojson_file)
+
+
+def _render_index_redirect(target: str) -> str:
+    return f"""<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <title>Equity Focus Areas Dashboard</title>
+  <meta http-equiv=\"refresh\" content=\"0; url={target}\" />
+  <link rel=\"canonical\" href=\"{target}\" />
+  <script>
+    (function () {{
+      var target = '{target}' + window.location.search + window.location.hash;
+      window.location.replace(target);
+    }})();
+  </script>
+</head>
+<body>
+  <p>Redirecting to the dashboard...</p>
+  <p>If you are not redirected, open <a href=\"{target}\">{target}</a>.</p>
+</body>
+</html>
+"""
