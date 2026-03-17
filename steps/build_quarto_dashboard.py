@@ -136,7 +136,7 @@ format:
     <option value="poc_category">People of color (% of population)</option>
     <option value="below_200_percent_poverty_category">Income below 200% poverty</option>
     <option value="hh_w_children_category">Households with children</option>
-    <option value="limited_english_category">Limited English population</option>
+    <option value="limited_english_category">Limited English (% of population)</option>
     <option value="age_65_plus_category">Population age 65 and over</option>
   </select>
 
@@ -208,7 +208,7 @@ const METRIC_LABELS = {
   poc_category: 'People of color (% of population)',
   below_200_percent_poverty_category: 'Income below 200% poverty',
   hh_w_children_category: 'Households with children',
-  limited_english_category: 'Limited English population',
+  limited_english_category: 'Limited English (% of population)',
   age_65_plus_category: 'Population age 65 and over'
 };
 

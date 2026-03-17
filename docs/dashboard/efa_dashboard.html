@@ -79,7 +79,7 @@ ul.task-list li input[type="checkbox"] {
 <div class="card bslib-card html-fill-container" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
 <div class="card-body html-fill-item html-fill-container">
 <div style="display:flex; gap: 16px; align-items:center; flex-wrap: wrap; margin-bottom: 12px;" class="html-fill-item html-fill-container">
-<p><label for="metricSelect"><strong>Metric</strong></label> <select id="metricSelect"> <option value="poc_category">People of color (% of population)</option> <option value="below_200_percent_poverty_category">Income below 200% poverty</option> <option value="hh_w_children_category">Households with children</option> <option value="limited_english_category">Limited English population</option> <option value="age_65_plus_category">Population age 65 and over</option> </select></p>
+<p><label for="metricSelect"><strong>Metric</strong></label> <select id="metricSelect"> <option value="poc_category">People of color (% of population)</option> <option value="below_200_percent_poverty_category">Income below 200% poverty</option> <option value="hh_w_children_category">Households with children</option> <option value="limited_english_category">Limited English (% of population)</option> <option value="age_65_plus_category">Population age 65 and over</option> </select></p>
 <p><label for="yearSlider" style="margin-left:12px;"><strong>Year</strong></label> <input id="yearSlider" type="range" min="0" max="3" step="1" value="0" list="yearTicks"> <datalist id="yearTicks"> <option value="0" label="1990"></option> <option value="1" label="2000"></option> <option value="2" label="2010"></option> <option value="3" label="2020"></option> </datalist> <span id="yearLabel" style="min-width: 48px;">1990</span></p>
 </div>
 <div id="status" style="margin: 8px 0;" class="html-fill-item html-fill-container">
@@ -141,7 +141,7 @@ const METRIC_LABELS = {
   poc_category: 'People of color (% of population)',
   below_200_percent_poverty_category: 'Income below 200% poverty',
   hh_w_children_category: 'Households with children',
-  limited_english_category: 'Limited English population',
+  limited_english_category: 'Limited English (% of population)',
   age_65_plus_category: 'Population age 65 and over'
 };
 
