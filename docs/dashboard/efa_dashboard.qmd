@@ -31,7 +31,10 @@ format:
 
 <div id="status" style="margin: 8px 0;"></div>
 
-<div id="map" style="height: 700px; width: 100%;"></div>
+<div id="mapWrap" style="position: relative; height: 700px; width: 100%;">
+  <div id="mapLoading" class="efa-map-loading">Loading tract data...</div>
+  <div id="map" style="height: 700px; width: 100%;"></div>
+</div>
 
 <style>
   .efa-legend {
@@ -57,6 +60,20 @@ format:
     border: 1px solid rgba(0, 0, 0, 0.2);
     flex: 0 0 auto;
   }
+  .efa-map-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(240, 240, 240, 0.9);
+    color: #444444;
+    font-weight: 600;
+    z-index: 500;
+  }
+  .efa-map-loading.is-hidden {
+    display: none;
+  }
 </style>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -78,6 +95,13 @@ let geojsonAll;
 let layer;
 let hasFitBounds = false;
 let legendDiv;
+
+function setMapLoading(isLoading, message) {
+  const el = document.getElementById('mapLoading');
+  if (!el) return;
+  if (message) el.textContent = message;
+  el.classList.toggle('is-hidden', !isLoading);
+}
 
 function setStatus(html) {
   const el = document.getElementById('status');
@@ -199,6 +223,7 @@ function updateLayer() {
 }
 
 async function init() {
+  setMapLoading(true, 'Loading tract data...');
   map = L.map('map').setView([47.5, -122.2], 9);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -213,8 +238,10 @@ async function init() {
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' loading ' + GEOJSON_URL);
     geojsonAll = await resp.json();
     setStatus('');
+    setMapLoading(false);
   } catch (err) {
     console.error('Failed to load GeoJSON', err);
+    setMapLoading(false);
     setStatus(
       'Could not load <code>' + GEOJSON_URL + '</code>. ' +
       'If you opened this dashboard from <code>file://</code>, most browsers block <code>fetch()</code>. ' +
