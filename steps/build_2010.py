@@ -94,9 +94,8 @@ def run_step(context: dict) -> None:
     # combine acs and decennial data
     df10 = df10.merge(acs10, on="geoid", how="outer")
     
-    paths = context["paths"]
-    xwalks_dir: Path = paths["xwalks"]
-    xwalk10_path = xwalks_dir / "nhgis_tr2010_tr2020_53.csv"
+    input_files = context["input_files"]
+    xwalk10_path: Path = input_files["xwalk_2010_2020"]
     _require_file(xwalk10_path)
 
     xwalk10 = pd.read_csv(xwalk10_path)

@@ -13,16 +13,14 @@ def _require_file(path: Path) -> None:
 
 
 def run_step(context: dict) -> None:
-    paths = context["paths"]
-    data_dir: Path = paths["data"]
-    xwalks_dir: Path = paths["xwalks"]
+    input_files = context["input_files"]
 
-    race_path = data_dir / "nhgis0017_ds120_1990_tract.csv"
-    poverty_path = data_dir / "nhgis0018_ds123_1990_tract.csv"
-    hh_w_children_path = data_dir / "nhgis0019_ds123_1990_tract.csv"
-    age_path = data_dir / "nhgis0019_ds120_1990_tract.csv"
-    xwalk90_path = xwalks_dir / "nhgis_tr1990_tr2010_53.csv"
-    xwalk10_path = xwalks_dir / "nhgis_tr2010_tr2020_53.csv"
+    race_path: Path = input_files["race_1990"]
+    poverty_path: Path = input_files["poverty_1990"]
+    hh_w_children_path: Path = input_files["household_children_1990"]
+    age_path: Path = input_files["age_1990"]
+    xwalk90_path: Path = input_files["xwalk_1990_2010"]
+    xwalk10_path: Path = input_files["xwalk_2010_2020"]
 
     for p in (race_path, poverty_path, hh_w_children_path, xwalk90_path, xwalk10_path):
         _require_file(p)

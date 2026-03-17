@@ -62,10 +62,9 @@ def run_step(context: dict) -> None:
     
     d00 = d00_sf1.merge(d00_sf3, on="geoid")
 
-    paths = context["paths"]
-    xwalks_dir: Path = paths["xwalks"]
-    xwalk00_path = xwalks_dir / "nhgis_tr2000_tr2010_53.csv"
-    xwalk10_path = xwalks_dir / "nhgis_tr2010_tr2020_53.csv"
+    input_files = context["input_files"]
+    xwalk00_path: Path = input_files["xwalk_2000_2010"]
+    xwalk10_path: Path = input_files["xwalk_2010_2020"]
 
     for p in (xwalk00_path, xwalk10_path):
         _require_file(p)

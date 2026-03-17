@@ -23,11 +23,20 @@ def run_step(context: dict) -> None:
 
     repo_root = Path.cwd()
     data_dir_cfg = context.get("data_dir", "data")
+    inputs_dir_cfg = context.get("inputs_dir")
     xwalks_dir_cfg = context.get("xwalks_dir", "xwalks")
     output_dir_cfg = context.get("output_dir", "outputs")
     intermediate_dir_cfg = context.get("intermediate_dir", "intermediate")
+    input_files_cfg = context.get("input_files", {})
 
     data_dir = (repo_root / data_dir_cfg) if not Path(str(data_dir_cfg)).is_absolute() else Path(str(data_dir_cfg))
+    inputs_dir = None
+    if inputs_dir_cfg:
+        inputs_dir = (
+            (repo_root / inputs_dir_cfg)
+            if not Path(str(inputs_dir_cfg)).is_absolute()
+            else Path(str(inputs_dir_cfg))
+        )
     xwalks_dir = (
         (repo_root / xwalks_dir_cfg)
         if not Path(str(xwalks_dir_cfg)).is_absolute()
@@ -53,18 +62,26 @@ def run_step(context: dict) -> None:
     paths = {
         "root": repo_root,
         "data": data_dir,
+        "inputs": inputs_dir,
         "xwalks": resolved_xwalks_dir,
         "output": output_dir,
         "intermediate": intermediate_dir,
     }
 
+    paths["data"].mkdir(parents=True, exist_ok=True)
     paths["output"].mkdir(parents=True, exist_ok=True)
     paths["intermediate"].mkdir(parents=True, exist_ok=True)
+
+    input_files: dict[str, Path] = {}
+    for key, raw_path in input_files_cfg.items():
+        path = Path(str(raw_path))
+        input_files[key] = path if path.is_absolute() else repo_root / path
 
     context["api_key"] = api_key
     context["county_ids"] = county_ids
     context["state_id"] = state_id
     context["paths"] = paths
+    context["input_files"] = input_files
     context["census"] = CensusApi(api_key)
 
     # A stable run tag for output file names.

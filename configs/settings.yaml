@@ -14,7 +14,17 @@ steps:
         output_dir: outputs
         intermediate_dir: intermediate
         docs_dir: docs
+        inputs_dir: Y:/REAP/Transportation Data/Forecasting/Data/dashboard_inputs
+        input_files:
+          race_1990: data/nhgis0017_ds120_1990_tract.csv
+          poverty_1990: data/nhgis0018_ds123_1990_tract.csv
+          household_children_1990: data/nhgis0019_ds123_1990_tract.csv
+          age_1990: data/nhgis0019_ds120_1990_tract.csv
+          xwalk_1990_2010: data/nhgis_tr1990_tr2010_53.csv
+          xwalk_2000_2010: data/nhgis_tr2000_tr2010_53.csv
+          xwalk_2010_2020: data/nhgis_tr2010_tr2020_53.csv
   - name: steps.init_context
+  - name: steps.copy_input_csvs
   - name: steps.define_columns
   - name: steps.build_1990
   - name: steps.build_2000
