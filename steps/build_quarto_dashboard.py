@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
@@ -21,18 +21,15 @@ def run_step(context: dict) -> None:
     )
     docs_dir.mkdir(parents=True, exist_ok=True)
 
-    # Keep dashboard output under docs/<dashboard_dir>/ to preserve existing
-    # config defaults (dashboard_dir: dashboard).
-    dashboard_subdir = context.get("dashboard_dir", "dashboard")
-    dashboard_dir = docs_dir / dashboard_subdir
-    dashboard_dir.mkdir(parents=True, exist_ok=True)
-
     # Prevent GitHub Pages/Jekyll from attempting to process Quarto output.
     (docs_dir / ".nojekyll").write_text("", encoding="utf-8")
 
     artifacts = context["artifacts"]
     df_poc = pd.read_parquet(artifacts["df_poc"])
     df_poverty = pd.read_parquet(artifacts["df_poverty"])
+    df_hh_w_children = pd.read_parquet(artifacts["df_hh_w_children"])
+    df_limited_english = pd.read_parquet(artifacts["df_limited_english"])
+    df_senior_population = pd.read_parquet(artifacts["df_senior_population"])
     tracts = gpd.read_parquet(artifacts["tracts"])
 
     # Ensure leaflet-friendly coordinates.
@@ -47,57 +44,83 @@ def run_step(context: dict) -> None:
     df_poverty_small = df_poverty[
         ["tr2020ge", "year", "below_200_percent_poverty_category"]
     ].copy()
+    df_hh_w_children_small = df_hh_w_children[
+      ["tr2020ge", "year", "hh_w_children_category"]
+    ].copy()
+    df_limited_english_small = df_limited_english[
+      ["tr2020ge", "year", "limited_english_category"]
+    ].copy()
+    df_senior_population_small = df_senior_population[
+      ["tr2020ge", "year", "age_65_plus_category"]
+    ].copy()
 
     metrics = df_poc_small.merge(
         df_poverty_small,
         on=["tr2020ge", "year"],
         how="outer",
     )
+    metrics = metrics.merge(
+      df_hh_w_children_small,
+      on=["tr2020ge", "year"],
+      how="outer",
+    )
+    metrics = metrics.merge(
+      df_limited_english_small,
+      on=["tr2020ge", "year"],
+      how="outer",
+    )
+    metrics = metrics.merge(
+      df_senior_population_small,
+      on=["tr2020ge", "year"],
+      how="outer",
+    )
 
     # Duplicate geometry per year (one feature per tract-year).
     gdf = tracts[["tr2020ge", "geometry"]].merge(metrics, on="tr2020ge", how="left")
     gdf["year"] = gdf["year"].astype("Int64")
 
-    geojson_path = dashboard_dir / "efa_dashboard_data.geojson"
+    geojson_path = docs_dir / "efa_dashboard_data.geojson"
     gdf.to_file(geojson_path, driver="GeoJSON")
 
-    qmd_path = dashboard_dir / "efa_dashboard.qmd"
+    qmd_path = docs_dir / "index.qmd"
     qmd_path.write_text(
         _render_qmd(title="Equity Metrics by Tract", geojson_file=geojson_path.name),
         encoding="utf-8",
     )
 
-    # Render the Quarto dashboard HTML (and its *_files assets) into docs/ so it
-    # can be hosted by GitHub Pages.
+    # Render the Quarto dashboard to docs/index.html for GitHub Pages.
     subprocess.run(
         [
             "quarto",
             "render",
-            str(qmd_path),
-            "--output-dir",
-            str(dashboard_dir),
+        qmd_path.name,
+        "--output",
+        "index.html",
         ],
         check=True,
+      cwd=docs_dir,
     )
 
 
 def _render_qmd(*, title: str, geojson_file: str) -> str:
-    # Use a Quarto dashboard layout, but keep the page minimal: one map.
-    return f"""---
-title: "{title}"
+    template = """---
+title: "__TITLE__"
 format:
   dashboard:
     orientation: rows
-    nav-buttons: {{show: false}}
+    nav-buttons: {show: false}
 ---
 
-::: {{.card}}
+::: {.card}
 
 <div style="display:flex; gap: 16px; align-items:center; flex-wrap: wrap; margin-bottom: 12px;">
   <label for="metricSelect"><strong>Metric</strong></label>
   <select id="metricSelect">
     <option value="poc_category">People of color (% of population)</option>
     <option value="below_200_percent_poverty_category">Income below 200% poverty</option>
+    <option value="hh_w_children_category">Households with children</option>
+    <option value="limited_english_category">Limited English population</option>
+    <option value="age_65_plus_category">Population age 65 and over</option>
   </select>
 
   <label for="yearSlider" style="margin-left:12px;"><strong>Year</strong></label>
@@ -146,7 +169,14 @@ format:
 
 <script>
 const YEARS = [1990, 2000, 2010, 2020];
-const GEOJSON_URL = '{geojson_file}';
+const GEOJSON_URL = '__GEOJSON_FILE__';
+const METRIC_LABELS = {
+  poc_category: 'People of color (% of population)',
+  below_200_percent_poverty_category: 'Income below 200% poverty',
+  hh_w_children_category: 'Households with children',
+  limited_english_category: 'Limited English population',
+  age_65_plus_category: 'Population age 65 and over'
+};
 
 let map;
 let geojsonAll;
@@ -154,50 +184,50 @@ let layer;
 let hasFitBounds = false;
 let legendDiv;
 
-function setStatus(html) {{
+function setStatus(html) {
   const el = document.getElementById('status');
   if (!el) return;
   el.innerHTML = html || '';
-}}
+}
 
-function getColor(v) {{
+function getColor(v) {
   if (v === null || v === undefined) return '#cccccc';
   const s = String(v);
   if (s === 'Below Regional Average') return '#ffffcc';
   if (s === 'Above Regional Average') return '#fd8d3c';
   if (s === 'Above 1 Std Dev') return '#800026';
   return '#cccccc';
-}}
+}
 
-function metricLabel(metric) {{
-  return (metric === 'poc_category') ? 'People of color (% of population)' : 'Income below 200% poverty';
-}}
+function metricLabel(metric) {
+  return METRIC_LABELS[metric] || metric;
+}
 
-function legendItems() {{
+function legendItems() {
   return [
-    {{ label: 'Below Regional Average', color: '#ffffcc' }},
-    {{ label: 'Above Regional Average', color: '#fd8d3c' }},
-    {{ label: 'Above 1 Std Dev', color: '#800026' }},
-    {{ label: 'No data', color: '#cccccc' }},
+    { label: 'Below Regional Average', color: '#ffffcc' },
+    { label: 'Above Regional Average', color: '#fd8d3c' },
+    { label: 'Above 1 Std Dev', color: '#800026' },
+    { label: 'No data', color: '#cccccc' },
   ];
-}}
+}
 
-function renderLegend(metric) {{
+function renderLegend(metric) {
   const title = metricLabel(metric);
   const rows = legendItems().map(item =>
-    `<div class="efa-legend-item"><span class="efa-legend-swatch" style="background:${{item.color}}"></span><span>${{item.label}}</span></div>`
+    `<div class="efa-legend-item"><span class="efa-legend-swatch" style="background:${item.color}"></span><span>${item.label}</span></div>`
   ).join('');
-  return `<div class="efa-legend-title">${{title}}</div>${{rows}}`;
-}}
+  return `<div class="efa-legend-title">${title}</div>${rows}`;
+}
 
-function updateLegend(metric) {{
+function updateLegend(metric) {
   if (!legendDiv) return;
   legendDiv.innerHTML = renderLegend(metric);
-}}
+}
 
-function initLegend() {{
-  const legend = L.control({{ position: 'bottomright' }});
-  legend.onAdd = function() {{
+function initLegend() {
+  const legend = L.control({ position: 'bottomright' });
+  legend.onAdd = function() {
     const div = L.DomUtil.create('div', 'efa-legend');
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
@@ -205,40 +235,40 @@ function initLegend() {{
     const metric = document.getElementById('metricSelect').value;
     div.innerHTML = renderLegend(metric);
     return div;
-  }};
+  };
   legend.addTo(map);
 }
 
-function styleFeature(metric, year) {{
-  return function(feature) {{
-    const props = feature.properties || {{}};
+function styleFeature(metric, year) {
+  return function(feature) {
+    const props = feature.properties || {};
     const v = props[metric];
-    return {{
+    return {
       color: '#666666',
       weight: 0.3,
       opacity: 1,
       fillColor: getColor(v),
       fillOpacity: 0.8
-    }};
-  }};
-}}
+    };
+  };
+}
 
-function featureFilter(year) {{
-  return function(feature) {{
+function featureFilter(year) {
+  return function(feature) {
     if (!feature || !feature.properties) return false;
     const y = feature.properties.year;
     if (y === null || y === undefined) return false;
     return Number(y) === year;
-  }};
-}}
+  };
+}
 
-function formatCategory(v) {{
+function formatCategory(v) {
   if (v === null || v === undefined) return 'NA';
   const s = String(v);
   return s.length ? s : 'NA';
-}}
+}
 
-function updateLayer() {{
+function updateLayer() {
   if (!geojsonAll) return;
   const metric = document.getElementById('metricSelect').value;
   const yearIndex = parseInt(document.getElementById('yearSlider').value, 10);
@@ -249,46 +279,46 @@ function updateLayer() {{
 
   if (layer) layer.remove();
 
-  layer = L.geoJSON(geojsonAll, {{
+  layer = L.geoJSON(geojsonAll, {
     filter: featureFilter(year),
     style: styleFeature(metric, year),
-    onEachFeature: function(feature, layer) {{
-      const p = feature.properties || {{}};
+    onEachFeature: function(feature, layer) {
+      const p = feature.properties || {};
       const tract = p.tr2020ge ?? 'unknown';
       const v = p[metric];
       const labelMetric = metricLabel(metric);
       layer.bindTooltip(
-        `Tract: ${{tract}}<br/>Year: ${{year}}<br/>${{labelMetric}}: ${{formatCategory(v)}}`,
-        {{sticky: true}}
+        `Tract: ${tract}<br/>Year: ${year}<br/>${labelMetric}: ${formatCategory(v)}`,
+        {sticky: true}
       );
-    }}
-  }}).addTo(map);
+    }
+  }).addTo(map);
 
-  if (!hasFitBounds) {{
+  if (!hasFitBounds) {
     const bounds = layer.getBounds && layer.getBounds();
-    if (bounds && bounds.isValid && bounds.isValid()) {{
-      map.fitBounds(bounds, {{padding: [20, 20]}});
+    if (bounds && bounds.isValid && bounds.isValid()) {
+      map.fitBounds(bounds, {padding: [20, 20]});
       hasFitBounds = true;
-    }}
-  }}
-}}
+    }
+  }
+}
 
-async function init() {{
+async function init() {
   map = L.map('map').setView([47.5, -122.2], 9);
-  L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
-  }}).addTo(map);
+  }).addTo(map);
 
   initLegend();
 
   setStatus('Loading data…');
-  try {{
+  try {
     const resp = await fetch(GEOJSON_URL);
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' loading ' + GEOJSON_URL);
     geojsonAll = await resp.json();
     setStatus('');
-  }} catch (err) {{
+  } catch (err) {
     console.error('Failed to load GeoJSON', err);
     setStatus(
       'Could not load <code>' + GEOJSON_URL + '</code>. ' +
@@ -296,7 +326,7 @@ async function init() {{
       'Try serving this folder with a local web server (e.g. <code>python -m http.server</code>) and open the <code>http://</code> URL.'
     );
     return;
-  }}
+  }
 
   document.getElementById('metricSelect').addEventListener('change', updateLayer);
   document.getElementById('yearSlider').addEventListener('input', updateLayer);
@@ -305,10 +335,11 @@ async function init() {{
   setTimeout(() => map.invalidateSize(), 50);
 
   updateLayer();
-}}
+}
 
 init();
 </script>
 
 :::
 """
+    return template.replace("__TITLE__", title).replace("__GEOJSON_FILE__", geojson_file)
