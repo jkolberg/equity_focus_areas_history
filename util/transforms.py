@@ -59,6 +59,9 @@ def normalize_round(df: pd.DataFrame, index_col: str, col_dict: dict) -> pd.Data
             result.columns.name = None
             result[total_col] = result.sum(axis=1)
 
+            if total_col in out_df.columns and total_col in result.columns:
+                result = result.drop(columns=[total_col])
+
             out_df = out_df.merge(result, how="outer", left_index=True, right_index=True)
 
     return out_df.fillna(0).astype(int).reset_index()
