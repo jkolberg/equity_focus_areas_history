@@ -19,10 +19,12 @@ def run_step(context: dict) -> None:
 
     race_path = data_dir / "nhgis0017_ds120_1990_tract.csv"
     poverty_path = data_dir / "nhgis0018_ds123_1990_tract.csv"
+    hh_w_children_path = data_dir / "nhgis0019_ds123_1990_tract.csv"
+    age_path = data_dir / "nhgis0019_ds120_1990_tract.csv"
     xwalk90_path = xwalks_dir / "nhgis_tr1990_tr2010_53.csv"
     xwalk10_path = xwalks_dir / "nhgis_tr2010_tr2020_53.csv"
 
-    for p in (race_path, poverty_path, xwalk90_path, xwalk10_path):
+    for p in (race_path, poverty_path, hh_w_children_path, xwalk90_path, xwalk10_path):
         _require_file(p)
 
     cols_to_get = context["cols_to_get"]
@@ -42,6 +44,7 @@ def run_step(context: dict) -> None:
             "ET2005": "other_nh",
         }
     )
+    df90_1 = df90_1[['GISJOIN'] + [col for col in df90_1.columns if col in cols_to_get]]
 
     df90_2 = pd.read_csv(poverty_path)
     poverty_all_cols = [
@@ -60,9 +63,53 @@ def run_step(context: dict) -> None:
     df90_2["below_200_percent_poverty"] = (
         df90_2["total_poverty_status_pop"] - df90_2["above_200_percent_poverty"]
     )
+    df90_2 = df90_2[['GISJOIN'] + [col for col in df90_2.columns if col in cols_to_get]]
 
-    df90 = df90_1.merge(df90_2, on="GISJOIN", how="outer")
-    df90 = df90[["GISJOIN"] + cols_to_get].copy()
+    df90_3 = pd.read_csv(hh_w_children_path)
+    w_children_cols = [
+        "E2W001",
+        "E2W003",
+        "E2W005",
+    ]
+    no_children_cols = [
+        "E2W002",
+        "E2W004",
+        "E2W006",
+        "E2W007",
+    ]
+    df90_3["hh_w_children"] = df90_3[w_children_cols].sum(axis=1)
+    df90_3["hh_no_children"] = df90_3[no_children_cols].sum(axis=1)
+    df90_3['total_households'] = df90_3['hh_w_children'] + df90_3['hh_no_children']
+
+    limited_english_cols = [
+        "E26004",
+        "E26007",
+        "E26010",
+        "E26014",
+        "E26017",
+        "E26020",
+        "E26024",
+        "E26027",
+        "E26030"
+    ]
+    persons_5_plus_cols = [f"E{26000 + i}" for i in range(1, 31)]
+    df90_3['limited_english'] = df90_3[limited_english_cols].sum(axis=1)
+    df90_3['total_persons_5_plus'] = df90_3[persons_5_plus_cols].sum(axis=1)
+    df90_3['not_limited_english'] = df90_3['total_persons_5_plus'] - df90_3['limited_english']
+    df90_3 = df90_3[['GISJOIN'] + [col for col in df90_3.columns if col in cols_to_get]]
+
+    df90_4 = pd.read_csv(age_path)
+    age_65_plus_cols = [f"ET{3000 + i}" for i in range(27,32)]
+    df90_4["age_65_plus"] = df90_4[age_65_plus_cols].sum(axis=1)
+    under_65_cols = [f"ET{3000 + i}" for i in range(1, 27)]
+    df90_4['age_under_65'] = df90_4[under_65_cols].sum(axis=1)
+    df90_4 = df90_4[['GISJOIN'] + [col for col in df90_4.columns if col in cols_to_get]]
+
+    df90 = (
+        df90_1.merge(df90_2, on="GISJOIN", how="outer")
+        .merge(df90_3, on="GISJOIN", how="outer")
+        .merge(df90_4, on="GISJOIN", how="outer")
+    )
 
     xwalk90 = pd.read_csv(xwalk90_path)
     xwalk10 = pd.read_csv(xwalk10_path)

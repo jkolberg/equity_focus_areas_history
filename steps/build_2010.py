@@ -19,6 +19,7 @@ def run_step(context: dict) -> None:
     cols_to_get = context["cols_to_get"]
     cols_dict = context["cols_dict"]
 
+    # Get decennial SF1 variables for 2010
     variables_dict = {
         "total_population": ["P001001"],
         "hispanic": ["P009002"],
@@ -27,9 +28,28 @@ def run_step(context: dict) -> None:
         "aian_nh": ["P009007"],
         "asian_pac_nh": ["P009008", "P009009"],
         "other_nh": ["P009010", "P009011"],
+        "age_65_plus": [
+            "P012020",
+            "P012021",
+            "P012022",
+            "P012023",
+            "P012024",
+            "P012025",
+            "P012044",
+            "P012045",
+            "P012046",
+            "P012047",
+            "P012048",
+            "P012049",
+        ],
+        "total_households": ["P019001"],
+        "hh_w_children": ["P019008", "P019012", "P019015"],
     }
     df10 = c.get_dec_data(variables_dict, 2010, "tract", "sf1", county_ids, state_id)
+    df10["age_under_65"] = df10["total_population"] - df10["age_65_plus"]
+    df10["hh_no_children"] = df10["total_households"] - df10["hh_w_children"]
 
+    # Get ACS variables for 2010 that we don't have in the decennial SF1
     variables_dict = {
         "total_poverty_status_pop": ["C17002_001E"],
         "below_200_percent_poverty": [
@@ -41,10 +61,39 @@ def run_step(context: dict) -> None:
             "C17002_007E",
         ],
         "above_200_percent_poverty": ["C17002_008E"],
+        "total_persons_5_plus": ["B16004_001E"],
+        "limited_english": [
+            "B16004_007E",
+            "B16004_008E",
+            "B16004_012E",
+            "B16004_013E",
+            "B16004_017E",
+            "B16004_018E",
+            "B16004_022E",
+            "B16004_023E",
+            "B16004_029E",
+            "B16004_030E",
+            "B16004_034E",
+            "B16004_035E",
+            "B16004_039E",
+            "B16004_040E",
+            "B16004_044E",
+            "B16004_045E",
+            "B16004_051E",
+            "B16004_052E",
+            "B16004_056E",
+            "B16004_057E",
+            "B16004_061E",
+            "B16004_062E",
+            "B16004_066E",
+            "B16004_067E",
+        ],
     }
     acs10 = c.get_acs_data(variables_dict, 2010, "tract", "acs5", county_ids, state_id)
+    acs10["not_limited_english"] = acs10["total_persons_5_plus"] - acs10["limited_english"]
+    # combine acs and decennial data
     df10 = df10.merge(acs10, on="geoid", how="outer")
-
+    
     paths = context["paths"]
     xwalks_dir: Path = paths["xwalks"]
     xwalk10_path = xwalks_dir / "nhgis_tr2010_tr2020_53.csv"

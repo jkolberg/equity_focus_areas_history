@@ -79,5 +79,8 @@ def run_step(context: dict) -> None:
         "df_all": intermediate / "df_all.parquet",
         "df_poc": intermediate / "df_poc.parquet",
         "df_poverty": intermediate / "df_poverty.parquet",
+        "df_hh_w_children": intermediate / "df_hh_w_children.parquet",
+        "df_limited_english": intermediate / "df_limited_english.parquet",
+        "df_senior_population": intermediate / "df_senior_population.parquet",
         "tracts": intermediate / "tracts.parquet",
     }

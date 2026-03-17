@@ -35,4 +35,5 @@ Place these in `xwalks/` (or `data/`):
 ## Outputs
 
 - CSVs, intermediate artifacts, and HTML maps are written to `outputs/` (configurable in `configs/settings.yaml`).
-- The Quarto dashboard is rendered to `docs/dashboard/` so it can be hosted via GitHub Pages.
+- The Shiny app (`app.R`) and dashboard data are written to `docs/dashboard/`.
+- Run the dashboard with R: `shiny::runApp("docs/dashboard")`.

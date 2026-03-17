@@ -12,11 +12,27 @@ def run_step(context: dict) -> None:
                 "asian_pac_nh",
                 "other_nh",
             ],
+            "senior_population": [
+                "age_65_plus",
+                "age_under_65",
+            ],
         },
         "total_poverty_status_pop": {
             "poverty_status": [
                 "below_200_percent_poverty",
                 "above_200_percent_poverty",
+            ],
+        },
+        "total_households": {
+            "household_type": [
+                "hh_w_children",
+                "hh_no_children",
+            ],
+        },
+        "total_persons_5_plus": {
+            "english_proficiency": [
+                "limited_english",
+                "not_limited_english",
             ],
         },
     }

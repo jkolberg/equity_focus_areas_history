@@ -13,8 +13,7 @@ steps:
         xwalks_dir: xwalks
         output_dir: outputs
         intermediate_dir: intermediate
-          docs_dir: docs
-        dashboard_dir: dashboard
+        docs_dir: docs
   - name: steps.init_context
   - name: steps.define_columns
   - name: steps.build_1990
@@ -24,6 +23,9 @@ steps:
   - name: steps.concat_all
   - name: steps.calc_poc_metric
   - name: steps.calc_poverty_metric
+  - name: steps.calc_hh_w_children_metric
+  - name: steps.calc_limited_english_metric
+  - name: steps.calc_senior_population_metric
   - name: steps.export_csvs
   - name: steps.load_tracts_geometry
   - name: steps.export_maps

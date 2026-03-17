@@ -22,6 +22,9 @@ def run_step(context: dict) -> None:
     artifacts = context["artifacts"]
     df_poc = pd.read_parquet(artifacts["df_poc"])
     df_poverty = pd.read_parquet(artifacts["df_poverty"])
+    df_hh_w_children = pd.read_parquet(artifacts["df_hh_w_children"])
+    df_limited_english = pd.read_parquet(artifacts["df_limited_english"])
+    df_senior_population = pd.read_parquet(artifacts["df_senior_population"])
     tracts = gpd.read_parquet(artifacts["tracts"])
 
     save_html_map(df_poc, tracts, "poc_category", out_dir)
@@ -31,3 +34,6 @@ def run_step(context: dict) -> None:
         "below_200_percent_poverty_category",
         out_dir,
     )
+    save_html_map(df_hh_w_children, tracts, "hh_w_children_category", out_dir)
+    save_html_map(df_limited_english, tracts, "limited_english_category", out_dir)
+    save_html_map(df_senior_population, tracts, "age_65_plus_category", out_dir)
